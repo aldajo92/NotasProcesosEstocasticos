@@ -1,0 +1,294 @@
+\documentclass[12pt,a4paper]{article}
+
+% Paquetes necesarios
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+
+% Configurar punto decimal en lugar de coma
+\decimalpoint
+
+% Configuración de página
+\geometry{margin=2.5cm}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Procesos Estocásticos}
+\fancyhead[R]{Entregable 02}
+\fancyfoot[C]{\thepage}
+
+% Ajustar altura del encabezado para evitar warning de fancyhdr
+\setlength{\headheight}{14.5pt}
+
+% Eliminar sangría de párrafos
+\setlength{\parindent}{0pt}
+
+% Título del documento
+\title{Entregable 02 - Procesos Estocásticos}
+\author{Alejandro Daniel José Gómez Flórez}
+\date{26 de Octubre de 2025}
+
+\begin{document}
+
+\maketitle
+
+\section*{Problema 1}
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+Suponga que tenemos el siguiente problema de optimización
+\begin{equation}
+\max_{x \in \mathcal{X}} h(x) \tag{1}
+\end{equation}
+
+En optimización numérica existe el método del gradiente que produce una secuencia $x_j$ definida por
+\begin{equation*}
+x_{j+1} = x_j + \alpha_j \nabla h(x_j), \quad \alpha_j > 0
+\end{equation*}
+
+el cual converge a la solución de (1) (cuando el dominio y la función son convexos). Para funciones $h$ poco regulares es posible que el método de gradiente quede atascado en máximo locales de la función $h$.
+
+La versión estocástica de este método toma ventaja de su contraparte determinista agregando unas perturbaciones aleatorias en el gradiente, en termino de diferencias finitas, de la siguiente manera:
+\begin{equation*}
+\nabla h(x_j) \approx \frac{h(x_j + \beta_j \zeta_j) - h(x_j - \beta_j \zeta_j)}{2\beta_j} \zeta_j = \Delta h(x_j, \beta_j, \zeta_j)
+\end{equation*}
+
+donde $\beta_j$ es una secuencia decreciente, $\zeta_j$ es una variable aleatoria uniformemente distribuida en la esfera unitaria ($\|\zeta_j\| = 1$).
+
+Luego la versión estocástica del método del gradiente está dada por,
+\begin{equation*}
+x_{j+1} = x_j + \alpha_j \Delta h(x_j, \beta_j, \zeta_j)
+\end{equation*}
+
+\textbf{Problema:} Considere la función:
+\begin{align*}
+h(x, y) = &\, (x \sin(20y) + y \sin(20x))^2 \cosh(\sin(10x)x) \\
+          &+ (x \cos(10y) - y \sin(10x))^2 \cosh(\cos(20y)y)
+\end{align*}
+
+determine el mínimo sobre $[-3, 3] \times [-3, 3]$. Considerando los siguientes escenarios:
+
+\begin{center}
+\begin{tabular}{c|cccc}
+Escenario & 1 & 2 & 3 & 4 \\
+\hline
+$\alpha_j$ & $1/\log(j + 1)$ & $1/100\log(j + 1)$ & $1/(j + 1)$ & $1/(j + 1)$ \\
+$\beta_j$ & $1/\log(j + 1)^{0.1}$ & $1/\log(j + 1)^{0.1}$ & $1/(j + 1)^{0.5}$ & $1/(j + 1)^{0.1}$
+\end{tabular}
+\end{center}
+
+y con $x_0 = (0.65, 0.8)$.
+
+\end{minipage}}
+\end{center}
+
+\textbf{Solución:}
+
+\subsection*{Implementación del algoritmo}
+
+El método del gradiente estocástico busca minimizar (equivalente a maximizar $-h$) la función objetivo mediante iteraciones que combinan:
+\begin{itemize}
+    \item Una aproximación del gradiente usando diferencias finitas con perturbaciones aleatorias
+    \item Secuencias decrecientes $\alpha_j$ (tasa de aprendizaje) y $\beta_j$ (magnitud de perturbación)
+\end{itemize}
+
+La aproximación del gradiente está dada por:
+\begin{equation*}
+\Delta h(x_j, \beta_j, \zeta_j) = \frac{h(x_j + \beta_j \zeta_j) - h(x_j - \beta_j \zeta_j)}{2\beta_j} \zeta_j
+\end{equation*}
+
+donde $\zeta_j$ es un vector aleatorio uniformemente distribuido en la esfera unitaria.
+
+La actualización iterativa es:
+\begin{equation*}
+x_{j+1} = x_j + \alpha_j \Delta h(x_j, \beta_j, \zeta_j)
+\end{equation*}
+
+Se mantiene la restricción del dominio proyectando los valores al intervalo $[-3, 3]$ en cada iteración.
+
+\subsection*{Pseudo-código del algoritmo}
+
+A continuación se presenta el pseudo-código del método del gradiente estocástico implementado:
+
+\begin{verbatim}
+Algoritmo: Método del Gradiente Estocástico
+
+Entrada:
+  - x0: punto inicial (x0, y0)
+  - n_iter: número de iteraciones
+  - alpha_func: función para calcular alpha_j
+  - beta_func: función para calcular beta_j
+  - h_func: función objetivo h(x, y)
+  - dominio: límites [-3, 3] x [-3, 3]
+
+Salida:
+  - trajectory: secuencia de puntos (x_j, y_j)
+  - h_values: valores de h evaluados en cada punto
+
+Inicialización:
+  x_actual ← x0
+  trajectory[0] ← x0
+  h_values[0] ← h_func(x0)
+
+Para j = 1 hasta n_iter hacer:
+  
+  // Calcular parámetros de la iteración
+  alpha_j ← alpha_func(j)
+  beta_j ← beta_func(j)
+  
+  // Generar vector aleatorio en esfera unitaria
+  z ← vector_normal(dim=2)
+  zeta_j ← z / ||z||
+  
+  // Aproximar el gradiente usando diferencias finitas
+  x_plus ← x_actual + beta_j * zeta_j
+  x_minus ← x_actual - beta_j * zeta_j
+  
+  h_plus ← h_func(x_plus)
+  h_minus ← h_func(x_minus)
+  
+  grad_aprox ← ((h_plus - h_minus) / (2 * beta_j)) * zeta_j
+  
+  // Actualizar posición
+  x_actual ← x_actual - alpha_j * grad_aprox
+  
+  // Proyectar al dominio [-3, 3] x [-3, 3]
+  x_actual ← max(-3, min(3, x_actual))
+  
+  // Guardar trayectoria y valor
+  trajectory[j] ← x_actual
+  h_values[j] ← h_func(x_actual)
+
+Fin Para
+
+Retornar trajectory, h_values
+\end{verbatim}
+
+\textbf{Nota:} El algoritmo fue implementado en lenguaje R, utilizando las funciones estándar para generación de números aleatorios (\texttt{rnorm}) y operaciones vectoriales. El código completo se encuentra disponible en el archivo \texttt{ProcesosEstocasticosEntregable2.ipynb}.
+
+\subsection*{Parámetros de los escenarios}
+
+Los cuatro escenarios difieren en las tasas de decrecimiento de $\alpha_j$ y $\beta_j$:
+
+\begin{itemize}
+    \item \textbf{Escenario 1:} $\alpha_j = \frac{1}{\log(j+1)}$, $\beta_j = \frac{1}{\log(j+1)^{0.1}}$ (decrecimiento logarítmico moderado)
+    \item \textbf{Escenario 2:} $\alpha_j = \frac{1}{100\log(j+1)}$, $\beta_j = \frac{1}{\log(j+1)^{0.1}}$ (tasa de aprendizaje muy lenta)
+    \item \textbf{Escenario 3:} $\alpha_j = \frac{1}{j+1}$, $\beta_j = \frac{1}{(j+1)^{0.5}}$ (decrecimiento algebraico moderado)
+    \item \textbf{Escenario 4:} $\alpha_j = \frac{1}{j+1}$, $\beta_j = \frac{1}{(j+1)^{0.1}}$ (perturbaciones decrecen lentamente)
+\end{itemize}
+
+\subsection*{Resultados de la simulación}
+
+Se ejecutaron 10,000 iteraciones para cada escenario, iniciando desde $x_0 = (0.65, 0.8)$. Los resultados obtenidos fueron:
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Escenario} & \textbf{Punto final $(x, y)$} & \textbf{Valor $h(x,y)$} & \textbf{Convergencia} \\
+\hline
+1 & $(0.0338, -0.0410)$ & $0.004516$ & Buena, cercano al mínimo \\
+2 & $(-0.0002, -0.0883)$ & $0.000001$ & Excelente, muy cerca del mínimo \\
+3 & $(0.0002, 0.0109)$ & $0.000000$ & Excelente, encontró el mínimo \\
+4 & $(-0.0003, -0.0582)$ & $0.000000$ & Excelente, encontró el mínimo \\
+\hline
+\end{tabular}
+\end{center}
+
+Los resultados muestran que todos los escenarios convergen hacia valores cercanos al origen $(0, 0)$, con valores de la función muy pequeños. Los Escenarios 3 y 4 obtienen los mejores resultados con $h(x,y) \approx 0$.
+
+\textbf{Observación importante:} El punto $(0, 0)$ es un candidato natural a mínimo global de la función $h(x,y)$, ya que evaluando:
+\begin{align*}
+h(0, 0) &= (0 \cdot \sin(0) + 0 \cdot \sin(0))^2 \cosh(0) + (0 \cdot \cos(0) - 0 \cdot \sin(0))^2 \cosh(0) \\
+&= 0^2 \cdot 1 + 0^2 \cdot 1 = 0
+\end{align*}
+
+Los cuatro escenarios lograron identificar este mínimo o puntos muy cercanos a él, demostrando la efectividad del método estocástico para escapar de mínimos locales en esta función altamente multimodal.
+
+\subsection*{Análisis gráfico}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{images/convergencia_zoom.png}
+\caption{Convergencia de los cuatro escenarios hacia el mínimo global. Se muestran las últimas 500 iteraciones de cada trayectoria sobre un mapa de calor de la función $h(x,y)$ en la región $[-0.3, 0.3] \times [-0.3, 0.3]$. Los puntos finales están marcados con círculos rellenos de colores y el mínimo teórico $(0,0)$ con una cruz blanca.}
+\label{fig:zoom}
+\end{figure}
+
+La Figura \ref{fig:zoom} muestra la convergencia de los cuatro escenarios hacia el mínimo global. Se observa que:
+\begin{itemize}
+    \item \textbf{Escenario 1} (rojo): Converge pero se mantiene a una distancia mayor del origen, con mayor variabilidad estocástica
+    \item \textbf{Escenario 2} (azul): Alcanza una región muy cercana al mínimo con trayectoria más suave debido a su menor tasa de aprendizaje
+    \item \textbf{Escenario 3} (verde): Logra convergencia precisa, concentrándose cerca del origen
+    \item \textbf{Escenario 4} (naranja): También converge exitosamente, explorando ligeramente más el espacio debido a perturbaciones que decrecen lentamente
+    \item Todos los escenarios identifican correctamente la región del mínimo global en $(0, 0)$
+\end{itemize}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{images/convergencia_temporal.png}
+\caption{Evolución temporal del valor de la función objetivo. Panel izquierdo: convergencia completa en escala logarítmica. Panel derecho: detalle de las últimas 2000 iteraciones mostrando el comportamiento estocástico cerca del mínimo.}
+\label{fig:temporal}
+\end{figure}
+
+La Figura \ref{fig:temporal} muestra la evolución del valor de $h(x_j, y_j)$ a lo largo de las iteraciones:
+\begin{itemize}
+    \item \textbf{Escala logarítmica (izquierda):} Revela las tasas de convergencia diferentes entre escenarios:
+    \begin{itemize}
+        \item Los Escenarios 3 y 4 (verde y naranja) convergen rápidamente en las primeras 1000 iteraciones
+        \item El Escenario 1 (rojo) converge más lentamente y se estabiliza en un valor mayor
+        \item El Escenario 2 (azul) tiene la convergencia más gradual pero alcanza valores muy bajos
+    \end{itemize}
+    \item \textbf{Últimas 2000 iteraciones (derecha):} Muestra el comportamiento estocástico cerca del mínimo:
+    \begin{itemize}
+        \item Todos los escenarios exhiben fluctuaciones aleatorias características del método estocástico
+        \item Los Escenarios 3 y 4 mantienen valores de $h$ consistentemente cercanos a cero
+        \item El Escenario 1 muestra mayor variabilidad, oscilando alrededor de $h \approx 0.04$
+        \item El balance entre $\alpha_j$ (tasa de aprendizaje) y $\beta_j$ (magnitud de perturbación) determina la magnitud de estas fluctuaciones
+    \end{itemize}
+\end{itemize}
+
+\subsection*{Comparación de escenarios}
+
+\textbf{Escenario 1 vs 2:}
+Ambos usan decrecimiento logarítmico para $\beta_j$, pero el Escenario 2 tiene una tasa de aprendizaje 100 veces menor. Los resultados muestran:
+\begin{itemize}
+    \item El Escenario 1 converge a $h = 0.004516$, quedando ligeramente alejado del mínimo
+    \item El Escenario 2, pese a su lentitud, alcanza $h = 0.000001$, muy cerca del óptimo
+    \item La tasa de aprendizaje más lenta del Escenario 2 permite una convergencia más precisa
+    \item Ambos terminan en diferentes puntos, pero el Escenario 2 es más exitoso
+\end{itemize}
+
+\textbf{Escenario 3 vs 4:}
+Ambos usan la misma tasa de aprendizaje $\alpha_j = 1/(j+1)$, pero difieren en $\beta_j$:
+\begin{itemize}
+    \item Escenario 3: $\beta_j = 1/(j+1)^{0.5}$ decrece más rápido, converge a $(0.0002, 0.0109)$ con $h \approx 0$
+    \item Escenario 4: $\beta_j = 1/(j+1)^{0.1}$ decrece lentamente, converge a $(-0.0003, -0.0582)$ con $h \approx 0$
+    \item Ambos alcanzan el mínimo global exitosamente
+    \item El decrecimiento algebraico de $\alpha_j = 1/(j+1)$ resulta más efectivo que el logarítmico
+\end{itemize}
+
+\subsection*{Conclusiones}
+
+\begin{enumerate}
+    \item El método del gradiente estocástico es efectivo para funciones multimodales complejas como la propuesta
+    
+    \item La elección de las secuencias $\alpha_j$ y $\beta_j$ afecta significativamente:
+    \begin{itemize}
+        \item Velocidad de convergencia
+        \item Estabilidad del algoritmo
+        \item Capacidad de escapar de mínimos locales
+    \end{itemize}
+    
+    \item Para esta función específica, los mejores resultados se observan en los Escenarios 3 y 4, ambos alcanzando valores prácticamente nulos de $h(x,y)$. El decrecimiento algebraico $1/(j+1)$ para $\alpha_j$ resulta más efectivo que el logarítmico
+    
+    \item Las perturbaciones aleatorias permiten explorar el espacio de manera más efectiva que el gradiente determinista
+    
+    \item Es recomendable ejecutar múltiples réplicas con diferentes semillas aleatorias para garantizar robustez
+\end{enumerate}
+
+\end{document}
+
