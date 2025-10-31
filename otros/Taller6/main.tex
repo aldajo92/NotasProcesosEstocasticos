@@ -17,7 +17,7 @@
 
 \section*{Enunciado del Problema}
 
-Los clientes llegan a una estación de servicio con una bomba a una tasa de 20 automóviles por hora. Sin embargo, los clientes irán a otra estación si hay al menos dos autos en la estación, es decir, uno siendo servido y otro esperando. Supongamos que el tiempo de servicio para los clientes es exponencial con media de seis minutos.
+Los clientes llegafn a una estación de servicio con una bomba a una tasa de 20 automóviles por hora. Sin embargo, los clientes irán a otra estación si hay al menos dos autos en la estación, es decir, uno siendo servido y otro esperando. Supongamos que el tiempo de servicio para los clientes es exponencial con media de seis minutos.
 
 \begin{itemize}
     \item[a)] Formule el modelo de cadena de Markov para el número de coches en la estación de servicio y encuentre su distribución estacionaria.
@@ -342,64 +342,87 @@ Una pequeña tienda de informática tiene espacio para mostrar hasta tres comput
 Definimos los siguientes estados:
 
 \begin{itemize}
-  \item $3$: Inventario lleno (3 computadoras)
-  \item $2$: 2 computadoras
-  \item $1$: 1 computadora, sin pedido
-  \item $1^*$: 1 computadora, con pedido en camino
-  \item $0^*$: 0 computadoras, con pedido en camino
+  \item Estado $3$: 3 computadoras (inventario lleno), sin pedido pendiente
+  \item Estado $2$: 2 computadoras, sin pedido pendiente
+  \item Estado $1^*$: 1 computadora, con pedido en camino (se hace automáticamente al llegar a 1)
+  \item Estado $0^*$: 0 computadoras, con pedido en camino
 \end{itemize}
 
-Las transiciones y tasas son:
+\textbf{Nota:} No existe estado "1 sin pedido" porque cuando el inventario llega a 1, \textit{inmediatamente} se hace el pedido.
+
+\textbf{Transiciones:}
+
+\begin{itemize}
+  \item Desde estado $3$: venta con tasa $\lambda = 2$ $\rightarrow$ va a estado $2$
+  \item Desde estado $2$: venta con tasa $\lambda = 2$ $\rightarrow$ va a estado $1^*$ (y se hace pedido)
+  \item Desde estado $1^*$:
+  \begin{itemize}
+    \item Venta con tasa $\lambda = 2$ $\rightarrow$ va a estado $0^*$
+    \item Llegada de pedido con tasa $\mu = 1$ $\rightarrow$ va a estado $3$ (tenía 1, llegan 2)
+  \end{itemize}
+  \item Desde estado $0^*$:
+  \begin{itemize}
+    \item Llegada de pedido con tasa $\mu = 1$ $\rightarrow$ va a estado $2$ (tenía 0, llegan 2)
+  \end{itemize}
+\end{itemize}
+
+La matriz de tasas $\mathbf{Q}$ (estados ordenados como $[3, 2, 1^*, 0^*]$) es:
 
 \begin{equation*}
 \mathbf{Q} =
 \begin{pmatrix}
--2 & 2 & 0 & 0 & 0 \\
-0 & -2 & 2 & 0 & 0 \\
-0 & 0 & -2 & 2 & 0 \\
-0 & 0 & 0 & -3 & 2 & 1 \\
-1 & 0 & 0 & 0 & -2
+-2 & 2 & 0 & 0 \\
+0 & -2 & 2 & 0 \\
+1 & 0 & -3 & 2 \\
+0 & 1 & 0 & -1
 \end{pmatrix}
 \end{equation*}
 
-Los estados están ordenados como $[3, 2, 1, 1^*, 0^*]$.
-
 \subsection*{b) Distribución estacionaria}
 
-Sea $\pi = (\pi_3, \pi_2, \pi_1, \pi_{1^*}, \pi_{0^*})$ tal que $\pi \mathbf{Q} = 0$ y $\sum \pi_i = 1$. Resolviendo el sistema:
+Sea $\pi = (\pi_3, \pi_2, \pi_{1^*}, \pi_{0^*})$ tal que $\pi \mathbf{Q} = 0$ y $\sum \pi_i = 1$. 
+
+Las ecuaciones de balance son $\pi \mathbf{Q} = 0$:
 
 \begin{align*}
--2\pi_3 + 1\pi_{0^*} &= 0 \\
-2\pi_3 - 2\pi_2 &= 0 \\
-2\pi_2 - 2\pi_1 &= 0 \\
-2\pi_1 - 3\pi_{1^*} &= 0 \\
-2\pi_{1^*} - 2\pi_{0^*} &= 0
+-2\pi_3 + \pi_{1^*} &= 0 \quad \text{(balance estado 3)}\\
+2\pi_3 - 2\pi_2 + \pi_{0^*} &= 0 \quad \text{(balance estado 2)}\\
+2\pi_2 - 3\pi_{1^*} &= 0 \quad \text{(balance estado $1^*$)}\\
+2\pi_{1^*} - \pi_{0^*} &= 0 \quad \text{(balance estado $0^*$)}
 \end{align*}
 
-De estas ecuaciones se obtiene:
+De la ecuación (1): $\pi_{1^*} = 2\pi_3$
 
-\begin{align*}
-\pi_2 &= \pi_3 \\
-\pi_1 &= \pi_2 = \pi_3 \\
-\pi_{1^*} &= \frac{2}{3}\pi_1 = \frac{2}{3}\pi_3 \\
-\pi_{0^*} &= \pi_{1^*} = \frac{2}{3}\pi_3 \\
-\end{align*}
+De la ecuación (4): $\pi_{0^*} = 2\pi_{1^*} = 2(2\pi_3) = 4\pi_3$
 
-Usando $\sum \pi_i = 1$:
+De la ecuación (3): $\pi_{1^*} = \frac{2}{3}\pi_2 \Rightarrow 2\pi_3 = \frac{2}{3}\pi_2 \Rightarrow \pi_2 = 3\pi_3$
 
+Verificación con ecuación (2):
 \begin{equation*}
-\pi_3 + \pi_3 + \pi_3 + \frac{2}{3}\pi_3 + \frac{2}{3}\pi_3 = 1 \Rightarrow \frac{14}{3}\pi_3 = 1 \Rightarrow \pi_3 = \frac{3}{14}
+2\pi_3 - 2\pi_2 + \pi_{0^*} = 2\pi_3 - 2(3\pi_3) + 4\pi_3 = 2\pi_3 - 6\pi_3 + 4\pi_3 = 0 \quad \checkmark
 \end{equation*}
 
-Entonces:
+Usando la condición de normalización $\sum \pi_i = 1$:
 
 \begin{equation*}
+\pi_3 + \pi_2 + \pi_{1^*} + \pi_{0^*} = 1
+\end{equation*}
+
+\begin{equation*}
+\pi_3 + 3\pi_3 + 2\pi_3 + 4\pi_3 = 1 \Rightarrow 10\pi_3 = 1 \Rightarrow \pi_3 = \frac{1}{10}
+\end{equation*}
+
+Por lo tanto, la distribución estacionaria es:
+
+\begin{equation*}
+\boxed{
 \begin{aligned}
-\pi_3 &= \frac{3}{14}, \quad
-\pi_2 = \pi_1 = \frac{3}{14}, \\
-\pi_{1^*} &= \frac{2}{14}, \quad
-\pi_{0^*} = \frac{2}{14}
+\pi_3 &= \frac{1}{10}, \quad
+\pi_2 = \frac{3}{10}, \quad
+\pi_{1^*} = \frac{2}{10} = \frac{1}{5}, \quad
+\pi_{0^*} = \frac{4}{10} = \frac{2}{5}
 \end{aligned}
+}
 \end{equation*}
 
 \subsection*{c) Promedio de computadoras vendidas por semana}
@@ -407,17 +430,28 @@ Entonces:
 En cada estado, las tasas de venta son:
 
 \begin{itemize}
-  \item Estado 3, 2, 1: venta con tasa 2.
-  \item Estado $1^*$: venta con tasa 2.
-  \item Estado $0^*$: no hay venta (tasa 0).
+  \item Estado $3$: venta con tasa $\lambda = 2$
+  \item Estado $2$: venta con tasa $\lambda = 2$
+  \item Estado $1^*$: venta con tasa $\lambda = 2$
+  \item Estado $0^*$: \textbf{no hay venta} (tasa = 0), porque no hay inventario
 \end{itemize}
 
-El promedio total de ventas por semana:
+El promedio de ventas por unidad de tiempo se calcula como:
 
 \begin{equation*}
-\bar{v} = 2(\pi_3 + \pi_2 + \pi_1 + \pi_{1^*}) + 0 = 2\left(\frac{3}{14} + \frac{3}{14} + \frac{3}{14} + \frac{2}{14}\right) = 2\left(\frac{11}{14}\right) = \frac{22}{14} = \frac{11}{7}
+\bar{v} = \sum_i (\text{tasa de venta en estado } i) \times \pi_i
 \end{equation*}
 
-\textbf{Respuesta:} En promedio, se venden $\boxed{\dfrac{11}{7}}$ computadoras por semana.
+\begin{equation*}
+\bar{v} = 2\pi_3 + 2\pi_2 + 2\pi_{1^*} + 0 \cdot \pi_{0^*}
+\end{equation*}
+
+\begin{equation*}
+\bar{v} = 2\left(\pi_3 + \pi_2 + \pi_{1^*}\right) = 2\left(\frac{1}{10} + \frac{3}{10} + \frac{2}{10}\right) = 2\left(\frac{6}{10}\right) = 2 \cdot \frac{3}{5} = \frac{6}{5}
+\end{equation*}
+
+\textbf{Respuesta:} En promedio, se venden $\boxed{\dfrac{6}{5} = 1.2}$ computadoras por semana.
+
+\textbf{Interpretación:} Aunque la tasa de demanda es de 2 computadoras por semana, el sistema solo puede vender 1.2 en promedio debido a que el 40\% del tiempo ($\pi_{0^*} = 2/5$) la tienda no tiene inventario disponible.
 
 \end{document}
